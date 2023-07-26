@@ -1,3 +1,5 @@
+library(tibble)
+
 #' @rdname simulate
 #'
 #' @title Simulate data using the model
@@ -107,20 +109,28 @@ predict <- function(mean_mat, sd_mat, mean_coef, sd_coef) {
 #'
 #' @export
 #'
-compute_stats <- function(y, pred, group, predsd = NULL, n_bootstrap = 0) {
+compute_stats <- function(y, pred, group, predsd = NULL, predlow = NULL, predhigh = NULL, n_bootstrap = 50) {
   data <- data.frame(y, pred, group)
+
   if (!is.null(predsd)) {
-    stopifnot(nrow(data) == length(predsd))
-    data$predsd <- predsd
+    stopifnot(is.null(predlow) && is.null(predhigh))
+    predlow <- pred - 1.645 * predsd
+    predhigh <- pred + 1.645 * predsd
   }
-  if (!is.null(predsd)) {
+  has_interval <- !is.null(predlow) && !is.null(predhigh)
+
+  if (has_interval) {
+    data <- data.frame(data, predlow, predhigh)
+  }
+
+  if (has_interval) {
     compute_metric <- function(data) {
       data %>%
         group_by(group) %>%
         summarize(
           r2 = cor(y, pred)**2,
-          coverage = mean((y >= pred - 1.645 * predsd) & (y <= pred + 1.645 * predsd)),
-          length = mean(predsd)
+          coverage = mean((y >= predlow) & (y <= predhigh)),
+          length = mean((predhigh - predlow) / (2 * 1.645))
         )
     }
   } else {
@@ -142,4 +152,55 @@ compute_stats <- function(y, pred, group, predsd = NULL, n_bootstrap = 0) {
   }
   bootstrap_stats <- do.call(rbind, bootstrap_stats)
   return(list(stats = stats, bootstrap_stats = bootstrap_stats))
+}
+
+plot_stats <- function(stats, col = "r2") {
+  if (is_tibble(stats)) {
+    # Single stats
+    stats_df <- stats %>%
+      group_by(group) %>%
+      summarize(
+        mean = mean(.data[[col]]),
+        sd = sd(.data[[col]])
+      )
+
+    p <- ggplot(stats_df, aes(x = as.factor(group), y = mean)) +
+      geom_errorbar(aes(ymin = mean - sd * 1.96, ymax = mean + sd * 1.96),
+        width = 0, position = position_dodge(width = 0.6)
+      ) +
+      geom_point() +
+      xlab("Group") +
+      ylab(col)
+  } else {
+    # Multiple stats, use name as group
+    stats_df <- stats %>%
+      bind_rows(.id = "name") %>%
+      group_by(name, group, ) %>%
+      summarize(
+        mean = mean(.data[[col]]),
+        sd = sd(.data[[col]]),
+        .groups = "drop"
+      )
+    pd <- position_dodge(width = 0.3)
+    p <- ggplot(stats_df, aes(x = as.factor(group), y = mean, group = name)) +
+      geom_errorbar(aes(ymin = mean - sd * 1.96, ymax = mean + sd * 1.96, color = name),
+        width = 0, position = pd
+      ) +
+      geom_point(aes(color = name), position = pd) +
+      geom_line(aes(color = name), position = pd, linewidth = 0.2) +
+      xlab("Group") +
+      ylab(col) +
+      theme(legend.position = c(0.7, 0.9), legend.background = element_rect(fill = "transparent")) +
+      guides(color = guide_legend(title = NULL))
+  }
+
+
+  return(p)
+}
+
+normalize_table <- function(x) {
+  return(data.frame(
+    q = qnorm((rank(x) - 0.5) / length(x)),
+    x = x
+  ))
 }
