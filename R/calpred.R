@@ -24,6 +24,42 @@ simulate <- function(mean_mat, sd_mat, mean_coef, sd_coef) {
   return(data.frame(y = y, mean = y_mean, sd = y_sd))
 }
 
+simulate_example <- function(n_indiv, sd_coef = c(
+                               intercept = log(7 / 3),
+                               ancestry = 0.2,
+                               age = -0.15,
+                               sex = 0.2
+                             )) {
+  # simulate contexts
+  data <- data.frame(
+    yhat = rnorm(n_indiv),
+    intercept = 1,
+    ancestry = runif(n_indiv),
+    age = rnorm(n_indiv, 40, 10),
+    sex = rbinom(n_indiv, size = 1, prob = 0.5)
+  )
+  data <- data %>% mutate(
+    ancestry_label = cut_number(ancestry, 5, labels = FALSE),
+    age_label = cut_number(age, 5, labels = FALSE),
+    sex_label = ifelse(sex > 0, "Female", "Male")
+  )
+
+  data[, c("ancestry", "age", "sex")] <- scale(data[, c("ancestry", "age", "sex")])
+
+  # simulate phenotype
+  y_mean <- data[, "yhat"]
+  sd_mat <- as.matrix(data[, c("intercept", "ancestry", "age", "sex")])
+
+  # specify coefficients
+  y_sd <- sqrt(exp(sd_mat %*% sd_coef))
+  y <- rnorm(n = n_indiv, mean = y_mean, sd = y_sd)
+  data[, "y"] <- y
+
+  pheno <- sort(rnbinom(n_indiv, mu = 120, size = 10))
+  data[, "pheno"] <- pheno[rank(data[, "y"], ties.method = "first")]
+  return(data)
+}
+
 #' @rdname train
 #'
 #' @title Train CalPred model
@@ -198,9 +234,14 @@ plot_stats <- function(stats, col = "r2") {
   return(p)
 }
 
-normalize_table <- function(x) {
-  return(data.frame(
-    q = qnorm((rank(x) - 0.5) / length(x)),
-    x = x
-  ))
+
+normalize_reference <- function(x) {
+  q <- qnorm((rank(x) - 0.5) / length(x))
+  # remove duplicated values in x
+  idx <- !duplicated(x)
+  x <- x[idx]
+  q <- q[idx]
+  q2x <- approxfun(q, x, rule = 2)
+  x2q <- approxfun(x, q, rule = 2)
+  return(list(q2x = q2x, x2q = x2q))
 }
