@@ -16,4 +16,3 @@ Rscript -e "install.packages(c('devtools', 'ggplot2', 'dplyr', 'patchwork'), rep
 ## Example notebooks
 - [Introduction with a simulated dataset](./introduction.ipynb)
 - [Example analysis pipeline](./example.ipynb)
-

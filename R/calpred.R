@@ -24,7 +24,7 @@ simulate <- function(mean_mat, sd_mat, mean_coef, sd_coef) {
   return(data.frame(y = y, mean = y_mean, sd = y_sd))
 }
 
-simulate_example <- function(n_indiv, sd_coef = c(
+simulate_example <- function(n, sd_coef = c(
                                intercept = log(7 / 3),
                                ancestry = 0.2,
                                age = -0.15,
@@ -32,11 +32,11 @@ simulate_example <- function(n_indiv, sd_coef = c(
                              )) {
   # simulate contexts
   data <- data.frame(
-    yhat = rnorm(n_indiv),
+    yhat = rnorm(n),
     intercept = 1,
-    ancestry = runif(n_indiv),
-    age = rnorm(n_indiv, 40, 10),
-    sex = rbinom(n_indiv, size = 1, prob = 0.5)
+    ancestry = runif(n),
+    age = rnorm(n, 40, 10),
+    sex = rbinom(n, size = 1, prob = 0.5)
   )
   data <- data %>% mutate(
     ancestry_label = cut_number(ancestry, 5, labels = FALSE),
@@ -52,10 +52,10 @@ simulate_example <- function(n_indiv, sd_coef = c(
 
   # specify coefficients
   y_sd <- sqrt(exp(sd_mat %*% sd_coef))
-  y <- rnorm(n = n_indiv, mean = y_mean, sd = y_sd)
+  y <- rnorm(n = n, mean = y_mean, sd = y_sd)
   data[, "y"] <- y
 
-  pheno <- sort(rnbinom(n_indiv, mu = 120, size = 10))
+  pheno <- sort(rnbinom(n, mu = 120, size = 10))
   data[, "pheno"] <- pheno[rank(data[, "y"], ties.method = "first")]
   return(data)
 }
@@ -190,7 +190,7 @@ compute_stats <- function(y, pred, group, predsd = NULL, predlow = NULL, predhig
   return(list(stats = stats, bootstrap_stats = bootstrap_stats))
 }
 
-plot_stats <- function(stats, col = "r2") {
+plot_stats <- function(stats, col = "r2", style = "point") {
   if (is_tibble(stats)) {
     # Single stats
     stats_df <- stats %>%
@@ -204,9 +204,16 @@ plot_stats <- function(stats, col = "r2") {
       geom_errorbar(aes(ymin = mean - sd * 1.96, ymax = mean + sd * 1.96),
         width = 0, position = position_dodge(width = 0.6)
       ) +
-      geom_point() +
       xlab("Group") +
       ylab(col)
+
+    if (style == "point") {
+      p <- p + geom_point(position = position_dodge(width = 0.6))
+    } else if (style == "bar") {
+      p <- p + geom_bar(stat = "identity", position = position_dodge(width = 0.6), fill = "white", color = "black")
+    } else {
+      stop("Unknown style")
+    }
   } else {
     # Multiple stats, use name as group
     stats_df <- stats %>%
@@ -222,12 +229,20 @@ plot_stats <- function(stats, col = "r2") {
       geom_errorbar(aes(ymin = mean - sd * 1.96, ymax = mean + sd * 1.96, color = name),
         width = 0, position = pd
       ) +
-      geom_point(aes(color = name), position = pd) +
-      geom_line(aes(color = name), position = pd, linewidth = 0.2) +
       xlab("Group") +
       ylab(col) +
       theme(legend.position = c(0.7, 0.9), legend.background = element_rect(fill = "transparent")) +
       guides(color = guide_legend(title = NULL))
+
+    if (style == "point") {
+      p <- p +
+        geom_point(aes(color = name), position = pd) +
+        geom_line(aes(color = name), position = pd, linewidth = 0.2)
+    } else if (style == "bar") {
+      p <- p + geom_bar(stat = "identity", position = position_dodge(width = 0.6), fill = "white", color = "black")
+    } else {
+      stop("Unknown style")
+    }
   }
 
 
@@ -244,4 +259,46 @@ normalize_reference <- function(x) {
   q2x <- approxfun(q, x, rule = 2)
   x2q <- approxfun(x, q, rule = 2)
   return(list(q2x = q2x, x2q = x2q))
+}
+
+compute_group_r2 <- function(y, pred, group) {
+  data <- data.frame(y, pred, group)
+  df <- data %>%
+    group_by(group) %>%
+    summarize(
+      r2 = cor(y, pred)**2,
+    )
+  return(df)
+}
+
+plot_calibration <- function(prob, y, n_bin = 10) {
+  # Create the factor variable based on prob
+  prob_bin <- as.integer(cut(prob, breaks = seq(0, 1, 1 / n_bin)))
+  # Calculate the proportion of y for each level of prob_bin
+  df <- data.frame(prob_bin, y)
+  prop_df <- df %>%
+    group_by(prob_bin) %>%
+    summarize(
+      proportion = mean(y),
+      n = n(),
+      proportion_sd = sd(y) / sqrt(n()) # Standard deviation of the proportion
+    )
+  print(prop_df)
+  # proportion_sd = sqrt(mean(y) * (1 - mean(y)) / n())
+
+
+  # prop_df <- aggregate(y ~ prob_bin, data = df, FUN = function(x) sum(x) / length(x))
+  # Plot the results
+  p <- ggplot(prop_df, aes(x = prob_bin, y = proportion, group = 1)) +
+    geom_bar(stat = "identity", color = "blue", fill = "white", width = 0.75) +
+    geom_errorbar(aes(ymin = proportion - 1.96 * proportion_sd, ymax = proportion + 1.96 * proportion_sd),
+      width = 0.2, linewidth = 0.5
+    ) +
+    geom_line(stat = "identity", color = "blue", linewidth = 0.5) +
+    geom_point(color = "blue") +
+    geom_abline(slope = 1 / n_bin, intercept = -0.5 / n_bin, color = "red", linetype = "longdash") +
+    scale_x_continuous(breaks = seq(1, n_bin)) +
+    labs(x = "Probability bins", y = "Empirical probability") +
+    lims(y = c(0, 1.03))
+  return(p)
 }
