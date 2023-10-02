@@ -116,7 +116,8 @@ predict_probit <- function(mean_mat, sd_mat, mean_coef, sd_coef) {
   y_prob <- pnorm(y_mean / y_var)
   return(data.frame(
     prob = y_prob,
-    mean = y_mean
+    mean = y_mean,
+    sd = y_var
   ))
 }
 
@@ -203,7 +204,8 @@ model_df <- cbind(name = rows, model_df)
 write.table(
   model_df,
   file = paste0(opt$out_prefix, ".coef.tsv"),
-  row.names = FALSE, col.names = TRUE, sep = "\t", na = "NA"
+  row.names = FALSE, col.names = TRUE, sep = "\t", na = "NA",
+  quote = FALSE
 )
 print(paste0("Coefficients saved to ", opt$out_prefix, ".coef.tsv"))
 
@@ -218,6 +220,7 @@ fitted_df <- cbind(
 write.table(
   fitted_df,
   file = paste0(opt$out_prefix, ".fitted.tsv"),
-  row.names = FALSE, col.names = TRUE, sep = "\t", na = "NA"
+  row.names = FALSE, col.names = TRUE, sep = "\t", na = "NA",
+  quote = FALSE
 )
 print(paste0("Fitted values saved to ", opt$out_prefix, ".fitted.tsv"))
