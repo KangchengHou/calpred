@@ -171,7 +171,7 @@ binary_trait_flag <- all(y %in% c(0, 1, TRUE, FALSE))
 
 if (binary_trait_flag) {
   print(
-    paste0(opt$y_col, "contains binary trait (0/1). Using probit regression.")
+    paste0(opt$y_col, " column contains binary trait (0/1). Using probit regression.")
   )
   sd_mat <- as.matrix(
     data[, c(which(names(data) %in% sd_cols)), drop = FALSE]
@@ -179,7 +179,7 @@ if (binary_trait_flag) {
   train_func <- train_probit
 } else {
   print(
-    paste0(opt$y_col, "contains values other than 0/1. Using continuous regression.")
+    paste0(opt$y_col, " column contains values other than 0/1. Using continuous regression.")
   )
   sd_mat <- as.matrix(
     cbind(
@@ -205,6 +205,7 @@ write.table(
   file = paste0(opt$out_prefix, ".coef.tsv"),
   row.names = FALSE, col.names = TRUE, sep = "\t", na = "NA"
 )
+print(paste0("Coefficients saved to ", opt$out_prefix, ".coef.tsv"))
 
 # fit back to the data
 fitted_df <- cbind(
@@ -219,3 +220,4 @@ write.table(
   file = paste0(opt$out_prefix, ".fitted.tsv"),
   row.names = FALSE, col.names = TRUE, sep = "\t", na = "NA"
 )
+print(paste0("Fitted values saved to ", opt$out_prefix, ".fitted.tsv"))
