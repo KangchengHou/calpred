@@ -157,7 +157,7 @@ def compute_group_stats(
 
 
 def group_stats(
-    df,
+    df: Union[pd.DataFrame, str],
     y: str,
     pred: str,
     group: Union[str, List[str]],
@@ -170,7 +170,7 @@ def group_stats(
 ):
     """
     Calculate the difference between the r2 between `y` and `pred`
-    across groups of individuals. For each `group`, only rows with [y, pred, group] all 
+    across groups of individuals. For each `group`, only rows with [y, pred, group] all
     present are used.
 
     Parameters
@@ -195,7 +195,12 @@ def group_stats(
 
     np.random.seed(seed)
     log_params("group-stats", locals())
-    df = pd.read_csv(df, sep="\t", index_col=0)
+    if isinstance(df, str):
+        df = pd.read_csv(df, sep="\t", index_col=0)
+    else:
+        assert isinstance(df, pd.DataFrame), "df must be a str or a pd.DataFrame"
+        df = df.copy()
+
     n_raw = df.shape[0]
     df.dropna(subset=[y, pred], inplace=True)
     logger.info(
@@ -216,7 +221,7 @@ def group_stats(
         unique_values = np.unique(tmp_df[col].values)
         n_unique = len(unique_values)
         if n_unique > n_subgroup:
-            logger.info(f"Converting column '{col}' to {n_subgroup} quintiles")
+            logger.info(f"Converting column '{col}' to {n_subgroup} subgroups")
             cat_var = pd.qcut(tmp_df[col], q=n_subgroup, duplicates="drop")
             df_col_cat = pd.DataFrame(
                 enumerate(cat_var.cat.categories), columns=["q", "cat"]
@@ -271,6 +276,9 @@ def group_stats(
             ]
         )
 
+    ##############
+    ### output ###
+    ##############
     pd.concat(r2_df).to_csv(out + ".r2.tsv", sep="\t", index=False, float_format="%.6g")
     pd.DataFrame(diff_df, columns=["group", "r2diff", "prob>0", "zscore"]).to_csv(
         out + ".r2diff.tsv", sep="\t", index=False, float_format="%.6g", na_rep="NA"
