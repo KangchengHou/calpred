@@ -161,7 +161,7 @@ def group_stats(
     y: str,
     pred: str,
     group: Union[str, List[str]],
-    out: str,
+    out_prefix: str,
     predstd: str = None,
     cor: str = "spearman",
     n_subgroup: int = 5,
@@ -279,16 +279,22 @@ def group_stats(
     ##############
     ### output ###
     ##############
-    pd.concat(r2_df).to_csv(out + ".r2.tsv", sep="\t", index=False, float_format="%.6g")
+    pd.concat(r2_df).to_csv(
+        out_prefix + ".r2.tsv", sep="\t", index=False, float_format="%.6g"
+    )
     pd.DataFrame(diff_df, columns=["group", "r2diff", "prob>0", "zscore"]).to_csv(
-        out + ".r2diff.tsv", sep="\t", index=False, float_format="%.6g", na_rep="NA"
+        out_prefix + ".r2diff.tsv",
+        sep="\t",
+        index=False,
+        float_format="%.6g",
+        na_rep="NA",
     )
     if len(cat_df) > 0:
-        pd.concat(cat_df).to_csv(out + ".cat.tsv", sep="\t", index=False)
+        pd.concat(cat_df).to_csv(out_prefix + ".cat.tsv", sep="\t", index=False)
 
     if len(predint_df) > 0:
         pd.concat(predint_df).to_csv(
-            out + ".predint.tsv", sep="\t", index=False, float_format="%.6g"
+            out_prefix + ".predint.tsv", sep="\t", index=False, float_format="%.6g"
         )
 
 
