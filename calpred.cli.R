@@ -1,9 +1,9 @@
 #!/usr/bin/env Rscript
 
 # Load required libraries
-library(statmod)
 library(optparse)
-library(Rchoice)
+suppressPackageStartupMessages(library(statmod))
+suppressPackageStartupMessages(library(Rchoice))
 
 
 #' @rdname train
