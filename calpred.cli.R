@@ -178,6 +178,7 @@ if (binary_trait_flag) {
     data[, c(which(names(data) %in% sd_cols)), drop = FALSE]
   )
   train_func <- train_probit
+  predict_func <- predict_probit
 } else {
   print(
     paste0(opt$y_col, " column contains values other than 0/1. Using continuous regression.")
@@ -188,6 +189,7 @@ if (binary_trait_flag) {
     )
   )
   train_func <- train
+  predict_func <- predict
 }
 
 
@@ -212,7 +214,7 @@ print(paste0("Coefficients saved to ", opt$out_prefix, ".coef.tsv"))
 # fit back to the data
 fitted_df <- cbind(
   data[, 1, drop = FALSE], # first column as index
-  predict(
+  predict_func(
     mean_mat = mean_mat, sd_mat = sd_mat,
     mean_coef = model$mean_coef, sd_coef = model$sd_coef
   )
