@@ -194,7 +194,7 @@ def group_stats(
     """
 
     np.random.seed(seed)
-    log_params("group-stats", locals())
+    # log_params("group-stats", locals())
     if isinstance(df, str):
         df = pd.read_csv(df, sep="\t", index_col=0)
     else:
