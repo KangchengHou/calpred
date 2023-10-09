@@ -155,12 +155,13 @@ option_list <- list(
 # Parse command-line arguments
 opt <- parse_args(OptionParser(option_list = option_list))
 
-data <- read.table(opt$df, header = TRUE, sep = "\t")
+data <- read.table(
+  opt$df, header = TRUE, sep = "\t", check.names=FALSE
+)
 
 log_info(paste0("Loaded data with columns: ", paste(colnames(data), collapse=',')))
 
 y <- data[, opt$y_col]
-
 
 # Extract mean_mat and sd_mat
 mean_cols <- strsplit(opt$mean_cols, ",")[[1]]
