@@ -156,12 +156,8 @@ option_list <- list(
 opt <- parse_args(OptionParser(option_list = option_list))
 
 data <- read.table(opt$df, header = TRUE, sep = "\t")
-log_info(
-  paste0(
-    "Loaded dataframe with columns: ", 
-    paste(colnames(data), sep=',')
-  )
-)
+
+log_info(paste0("Loaded data with columns: ", paste(colnames(data), collapse=',')))
 
 y <- data[, opt$y_col]
 
@@ -201,8 +197,8 @@ if (binary_trait_flag) {
   predict_func <- predict_quant
 }
 
-log_info(paste0("Loaded mean_mat: ", paste(colnames(mean_mat), sep=',')))
-log_info(paste0("Loaded sd_mat: ", paste(colnames(sd_mat), sep=',')))
+log_info(paste0("Loaded mean_mat: ", paste(colnames(mean_mat), collapse=',')))
+log_info(paste0("Loaded sd_mat: ", paste(colnames(sd_mat), collapse=',')))
 
 # model training
 model <- train_func(mean_mat = mean_mat, sd_mat = sd_mat, y = y)
