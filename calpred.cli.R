@@ -224,7 +224,7 @@ write.table(
   row.names = FALSE, col.names = TRUE, sep = "\t", na = "NA",
   quote = FALSE
 )
-log_info(paste0("Coefficients saved to ", opt$out_prefix, ".coef.tsv"))
+
 
 # fit back to the data
 fitted_df <- cbind(
@@ -240,4 +240,9 @@ write.table(
   row.names = FALSE, col.names = TRUE, sep = "\t", na = "NA",
   quote = FALSE
 )
-log_info(paste0("Fitted values saved to ", opt$out_prefix, ".fitted.tsv"))
+log_info(
+  paste0("Coefficients/fitted values saved to ", 
+  opt$out_prefix, ".coef.tsv", 
+  "/", 
+  opt$out_prefix, ".fitted.tsv")
+)
