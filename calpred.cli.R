@@ -159,7 +159,6 @@ data <- read.table(
   opt$df, header = TRUE, sep = "\t", check.names=FALSE
 )
 
-log_info(paste0("Loaded data with columns: ", paste(colnames(data), collapse=',')))
 
 y <- data[, opt$y_col]
 
@@ -167,6 +166,17 @@ y <- data[, opt$y_col]
 mean_cols <- strsplit(opt$mean_cols, ",")[[1]]
 sd_cols <- strsplit(opt$sd_cols, ",")[[1]]
 
+# warn if any of the mean_cols or sd_cols not in data
+for (col in mean_cols) {
+  if (!col %in% colnames(data)) {
+    log_warn(paste0("Column ", col, " not in data, required by mean_cols"))
+  }
+}
+for (col in sd_cols) {
+  if (!col %in% colnames(data)) {
+    log_warn(paste0("Column ", col, " not in data, required by sd_cols"))
+  }
+}
 
 mean_mat <- as.matrix(
   cbind(
@@ -197,9 +207,6 @@ if (binary_trait_flag) {
   train_func <- train_quant
   predict_func <- predict_quant
 }
-
-log_info(paste0("Loaded mean_mat: ", paste(colnames(mean_mat), collapse=',')))
-log_info(paste0("Loaded sd_mat: ", paste(colnames(sd_mat), collapse=',')))
 
 # model training
 model <- train_func(mean_mat = mean_mat, sd_mat = sd_mat, y = y)
