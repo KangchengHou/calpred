@@ -2,6 +2,7 @@
 
 # Load required libraries
 library(optparse)
+library(logger)
 suppressPackageStartupMessages(library(statmod))
 suppressPackageStartupMessages(library(Rchoice))
 
@@ -22,7 +23,7 @@ suppressPackageStartupMessages(library(Rchoice))
 #'
 #' @export
 #'
-train <- function(mean_mat, sd_mat, y, tol = 1e-6, maxit = 100) {
+train_quant <- function(mean_mat, sd_mat, y, tol = 1e-6, maxit = 100) {
   fit <- statmod::remlscore(y = y, X = mean_mat, Z = sd_mat, tol = tol, maxit = maxit)
   mean_coef <- as.vector(fit$beta)
   sd_coef <- as.vector(fit$gamma)
@@ -89,7 +90,7 @@ train_probit <- function(mean_mat, sd_mat, y) {
 #'
 #' @export
 #'
-predict <- function(mean_mat, sd_mat, mean_coef, sd_coef) {
+predict_quant <- function(mean_mat, sd_mat, mean_coef, sd_coef) {
   if (!all.equal(colnames(mean_mat), names(mean_coef))) {
     stop("colnames(mean_mat) != names(mean_coef)")
   }
@@ -155,12 +156,20 @@ option_list <- list(
 opt <- parse_args(OptionParser(option_list = option_list))
 
 data <- read.table(opt$df, header = TRUE, sep = "\t")
+log_info(
+  paste0(
+    "Loaded dataframe with columns: ", 
+    paste(colnames(data), sep=',')
+  )
+)
+
 y <- data[, opt$y_col]
 
 
 # Extract mean_mat and sd_mat
 mean_cols <- strsplit(opt$mean_cols, ",")[[1]]
 sd_cols <- strsplit(opt$sd_cols, ",")[[1]]
+
 
 mean_mat <- as.matrix(
   cbind(
@@ -171,7 +180,7 @@ mean_mat <- as.matrix(
 binary_trait_flag <- all(y %in% c(0, 1, TRUE, FALSE))
 
 if (binary_trait_flag) {
-  print(
+  log_info(
     paste0(opt$y_col, " column contains binary trait (0/1). Using probit regression.")
   )
   sd_mat <- as.matrix(
@@ -180,7 +189,7 @@ if (binary_trait_flag) {
   train_func <- train_probit
   predict_func <- predict_probit
 } else {
-  print(
+  log_info(
     paste0(opt$y_col, " column contains values other than 0/1. Using continuous regression.")
   )
   sd_mat <- as.matrix(
@@ -188,10 +197,12 @@ if (binary_trait_flag) {
       const = 1, data[, c(which(names(data) %in% sd_cols)), drop = FALSE]
     )
   )
-  train_func <- train
-  predict_func <- predict
+  train_func <- train_quant
+  predict_func <- predict_quant
 }
 
+log_info(paste0("Loaded mean_mat: ", paste(colnames(mean_mat), sep=',')))
+log_info(paste0("Loaded sd_mat: ", paste(colnames(sd_mat), sep=',')))
 
 # model training
 model <- train_func(mean_mat = mean_mat, sd_mat = sd_mat, y = y)
@@ -209,7 +220,7 @@ write.table(
   row.names = FALSE, col.names = TRUE, sep = "\t", na = "NA",
   quote = FALSE
 )
-print(paste0("Coefficients saved to ", opt$out_prefix, ".coef.tsv"))
+log_info(paste0("Coefficients saved to ", opt$out_prefix, ".coef.tsv"))
 
 # fit back to the data
 fitted_df <- cbind(
@@ -225,4 +236,4 @@ write.table(
   row.names = FALSE, col.names = TRUE, sep = "\t", na = "NA",
   quote = FALSE
 )
-print(paste0("Fitted values saved to ", opt$out_prefix, ".fitted.tsv"))
+log_info(paste0("Fitted values saved to ", opt$out_prefix, ".fitted.tsv"))
