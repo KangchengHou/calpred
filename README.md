@@ -4,13 +4,14 @@
 
 See [companion manuscript github repository](https://github.com/KangchengHou/calpred-manuscript) for analysis scripts used in the [manuscript](https://www.medrxiv.org/content/10.1101/2023.07.24.23293056v1).
 
-## Try it out
+## Installation
 ```bash
 git clone https://github.com/KangchengHou/calpred.git && cd calpred/
 Rscript -e "install.packages(c('statmod', 'Rchoice', 'logger', 'optparse', 'glue'), repos='https://cran.rstudio.com')" # calpred dependency
 Rscript -e "install.packages(c('devtools', 'ggplot2', 'dplyr', 'patchwork'), repos='https://cran.rstudio.com')" # for example notebooks
 ```
 
+## Quick example
 ```bash
 # input dataframe (df) must have person ID as 1st column, and should not contain missing data
 # y_col is the column name of the trait of interest
