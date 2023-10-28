@@ -366,7 +366,8 @@ def plot_heatmap(
 
 def plot_r2_heatmap(
     value_df: pd.DataFrame,
-    annot_df: pd.DataFrame,
+    pval_df: pd.DataFrame,
+    baseline_df: pd.DataFrame = None,
     cbar_pad=0.04,
     cbar_fraction=0.0188,
     squaresize=45,
@@ -394,6 +395,45 @@ def plot_r2_heatmap(
     -------
     fig, ax
     """
+    value_df, pval_df = value_df.copy(), pval_df.copy()
+    assert np.all(value_df.index == pval_df.index) and np.all(
+        value_df.columns == pval_df.columns
+    )
+    annot_df = pd.DataFrame("", index=value_df.index, columns=value_df.columns)
+    for r in value_df.index:
+        for c in value_df.columns:
+            val, pval = value_df.loc[r, c], pval_df.loc[r, c]
+            if np.isnan(val):
+                annot = "NA"
+            elif pval < 0.05 / pval_df.size:
+                annot = f"{val * 100:+.0f}%"
+            elif pval < 0.05 / pval_df.shape[0]:
+                annot = "*"
+            else:
+                annot = ""
+            annot_df.loc[r, c] = annot
+
+    # after constructing annotation, fill missing values with NA
+    value_df, pval_df = value_df.fillna(0.0), pval_df.fillna(0.0)
+
+    logger.info(f"#rows={pval_df.shape[0]}, #columns={pval_df.shape[1]}")
+    logger.info(
+        f"N={np.sum(pval_df.values < 0.05 / pval_df.size)} with number: p < 0.05 / {pval_df.size}; "
+        f"N={np.sum(pval_df.values < 0.05 / pval_df.shape[0])} with *: p < 0.05 / {pval_df.shape[0]}"
+    )
+    logger.info(
+        f"PGSs with at least one significant covariate:",
+        np.any(pval_df <= 0.05 / pval_df.size, axis=0).sum(),
+    )
+    if baseline_df is not None:
+        baseline_list = baseline_df[value_df.columns].values
+        value_df.columns = [
+            f"{t} ({b*100:.0f}%)" for t, b in zip(value_df.columns, baseline_list)
+        ]
+        annot_df.columns = [
+            f"{t} ({b*100:.0f}%)" for t, b in zip(annot_df.columns, baseline_list)
+        ]
+
     fig, ax = plot_heatmap(
         value_df=value_df,
         annot_df=annot_df,
@@ -435,6 +475,71 @@ def plot_r2_heatmap(
         spine.set_visible(True)
 
     return fig, ax
+
+
+def plot_coef_heatmap(
+    value_df,
+    squaresize=45,
+    heatmap_vmin=-0.5,
+    heatmap_vmax=0.5,
+    heatmap_linecolor="white",
+    heatmap_linewidths=1.0,
+    cbar_pad=0.04,
+    cbar_fraction=0.0188,
+    dpi=150,
+    flip_value=False,
+    cmap="bwr",
+):
+    value_df = value_df.fillna(0.0)
+    if flip_value:
+        value_df *= -1
+    df_annot = value_df.applymap(lambda x: f"{x:.2f}" if ~np.isnan(x) else "NA")
+
+    fig, ax = plot_heatmap(
+        df_val=value_df,
+        df_annot=df_annot,
+        annot_kws={"fontsize": 6, "weight": "bold"},
+        cmap=plt.get_cmap(cmap, 11),
+        squaresize=squaresize,
+        heatmap_vmin=heatmap_vmin,
+        heatmap_vmax=heatmap_vmax,
+        heatmap_linecolor=heatmap_linecolor,
+        heatmap_linewidths=heatmap_linewidths,
+        heatmap_cbar_kws=dict(
+            use_gridspec=False,
+            location="right",
+            fraction=cbar_fraction,
+            pad=cbar_pad,
+            drawedges=True,
+        ),
+        dpi=dpi,
+    )
+    ax.set_xlabel(None)
+    ax.set_xticklabels(ax.get_xticklabels(), fontsize=9)
+
+    ax.set_ylabel(None)
+    ax.set_yticklabels(ax.get_yticklabels(), fontsize=9)
+
+    cbar = ax.collections[0].colorbar
+    cbar.set_ticks([-0.2, -0.1, 0, 0.1, 0.2])
+    cbar.set_ticklabels(["-0.2", "-0.1", "0", "0.1", "0.2"])
+    if flip_value:
+        cbar_ylabel = r"Negative estimated $\beta$"
+    else:
+        cbar_ylabel = r"Estimated $\beta$"
+
+    cbar.ax.set_ylabel(cbar_ylabel, rotation=270, fontsize=9, labelpad=12.0)
+
+    cbar.outline.set_edgecolor("black")
+    cbar.outline.set_linewidth(0.8)
+
+    cbar.ax.tick_params(labelsize=8)
+    cbar.ax.tick_params(size=0)
+
+    for _, spine in ax.spines.items():
+        spine.set_visible(True)
+
+    return fig, ax, cbar
 
 
 if __name__ == "__main__":
