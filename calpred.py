@@ -367,7 +367,7 @@ def plot_heatmap(
 def plot_r2_heatmap(
     value_df: pd.DataFrame,
     pval_df: pd.DataFrame,
-    baseline_df: pd.DataFrame = None,
+    baseline_df: pd.Series = None,
     cbar_pad=0.04,
     cbar_fraction=0.0188,
     squaresize=45,
@@ -492,11 +492,11 @@ def plot_coef_heatmap(
     value_df = value_df.fillna(0.0)
     if flip_value:
         value_df *= -1
-    df_annot = value_df.applymap(lambda x: f"{x:.2f}" if ~np.isnan(x) else "NA")
+    annot_df = value_df.applymap(lambda x: f"{x:.2f}" if ~np.isnan(x) else "NA")
 
     fig, ax = plot_heatmap(
-        df_val=value_df,
-        df_annot=df_annot,
+        value_df=value_df,
+        annot_df=df_annot,
         annot_kws={"fontsize": 6, "weight": "bold"},
         cmap=plt.get_cmap(cmap, 11),
         squaresize=squaresize,
