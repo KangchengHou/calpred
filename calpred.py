@@ -422,8 +422,7 @@ def plot_r2_heatmap(
         f"N={np.sum(pval_df.values < 0.05 / pval_df.shape[0])} with *: p < 0.05 / {pval_df.shape[0]}"
     )
     logger.info(
-        f"PGSs with at least one significant covariate:",
-        np.any(pval_df <= 0.05 / pval_df.size, axis=0).sum(),
+        f"{np.any(pval_df <= 0.05 / pval_df.size, axis=0).sum()} PGSs with at least one significant covariate"
     )
     if baseline_df is not None:
         baseline_list = baseline_df[value_df.columns].values
