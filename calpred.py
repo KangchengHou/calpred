@@ -489,10 +489,10 @@ def plot_coef_heatmap(
     flip_value=False,
     cmap="bwr",
 ):
-    value_df = value_df.fillna(0.0)
     if flip_value:
         value_df *= -1
     annot_df = value_df.applymap(lambda x: f"{x:.2f}" if ~np.isnan(x) else "NA")
+    value_df = value_df.fillna(0.0)
 
     fig, ax = plot_heatmap(
         value_df=value_df,
@@ -538,7 +538,7 @@ def plot_coef_heatmap(
     for _, spine in ax.spines.items():
         spine.set_visible(True)
 
-    return fig, ax, cbar
+    return fig, ax
 
 
 if __name__ == "__main__":
