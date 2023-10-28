@@ -496,7 +496,7 @@ def plot_coef_heatmap(
 
     fig, ax = plot_heatmap(
         value_df=value_df,
-        annot_df=df_annot,
+        annot_df=annot_df,
         annot_kws={"fontsize": 6, "weight": "bold"},
         cmap=plt.get_cmap(cmap, 11),
         squaresize=squaresize,
