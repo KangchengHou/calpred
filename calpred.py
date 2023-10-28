@@ -2,7 +2,10 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 from tqdm import tqdm
-from typing import List, Union
+from typing import List, Union, Dict
+import matplotlib.pyplot as plt
+import matplotlib.transforms as mtrans
+import seaborn as sns
 import structlog
 import fire
 
@@ -107,7 +110,6 @@ def compute_group_stats(
             "std(pred)": pred_std,
         }
         if predstd_col is not None:
-
             res_df["coverage"] = (
                 df[y_col]
                 .between(
@@ -296,6 +298,143 @@ def group_stats(
         pd.concat(predint_df).to_csv(
             out_prefix + ".predint.tsv", sep="\t", index=False, float_format="%.6g"
         )
+
+
+def plot_heatmap(
+    value_df: pd.DataFrame,
+    annot_df: pd.DataFrame = None,
+    annot_kws: Dict = None,
+    cmap="RdBu_r",
+    dpi=150,
+    squaresize=20,
+    heatmap_linewidths=0.5,
+    heatmap_linecolor="gray",
+    heatmap_xticklabels=True,
+    heatmap_yticklabels=True,
+    heatmap_cbar=True,
+    heatmap_cbar_kws=dict(use_gridspec=False, location="top", fraction=0.03, pad=0.01),
+    heatmap_vmin=-5,
+    heatmap_vmax=5,
+    xticklabels_rotation=45,
+):
+    """Plot heatmap with annotations.
+
+    Parameters
+    ----------
+    value_df: pd.DataFrame
+        The dataframe with the values to plot.
+    annot_df: pd.DataFrame
+        The dataframe with the annotations to plot.
+    """
+    figwidth = value_df.shape[1] * squaresize / float(dpi)
+    figheight = value_df.shape[0] * squaresize / float(dpi)
+    fig, ax = plt.subplots(1, figsize=(figwidth, figheight), dpi=dpi)
+    fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
+
+    sns.heatmap(
+        value_df,
+        cmap=cmap,
+        linewidths=heatmap_linewidths,
+        linecolor=heatmap_linecolor,
+        square=True,
+        annot=annot_df,
+        annot_kws=annot_kws,
+        fmt="",
+        ax=ax,
+        xticklabels=heatmap_xticklabels,
+        yticklabels=heatmap_yticklabels,
+        cbar=heatmap_cbar,
+        cbar_kws=heatmap_cbar_kws,
+        vmin=heatmap_vmin,
+        vmax=heatmap_vmax,
+    )
+
+    plt.yticks(fontsize=8)
+    ax.set_xticklabels(
+        ax.get_xticklabels(),
+        rotation=xticklabels_rotation,
+        va="top",
+        ha="right",
+        fontsize=8,
+    )
+    ax.tick_params(left=False, bottom=False, pad=-2)
+    trans = mtrans.Affine2D().translate(5, 0)
+    for t in ax.get_xticklabels():
+        t.set_transform(t.get_transform() + trans)
+    return fig, ax
+
+
+def plot_r2_heatmap(
+    value_df: pd.DataFrame,
+    annot_df: pd.DataFrame,
+    cbar_pad=0.04,
+    cbar_fraction=0.0188,
+    squaresize=45,
+    heatmap_vmin=-0.5,
+    heatmap_vmax=0.5,
+    heatmap_linecolor="white",
+    heatmap_linewidths=1.0,
+    dpi=150,
+):
+    """Plot heatmap of variable R2 using `plot_heatmap` functions and
+    colorbar functions.
+
+    Parameters
+    ----------
+    value_df : pd.DataFrame
+        R2 differences.
+    annot_df : pd.DataFrame
+        annotations.
+    cbar_pad : float, optional
+        pad for colorbar, by default 0.04
+    cbar_fraction : float, optional
+        fraction for colorbar, by default 0.0188
+
+    Returns
+    -------
+    fig, ax
+    """
+    fig, ax = plot_heatmap(
+        value_df=value_df,
+        annot_df=annot_df,
+        annot_kws={"fontsize": 6, "weight": "bold"},
+        cmap=plt.get_cmap("bwr", 11),
+        squaresize=squaresize,
+        heatmap_vmin=heatmap_vmin,
+        heatmap_vmax=heatmap_vmax,
+        heatmap_linecolor=heatmap_linecolor,
+        heatmap_linewidths=heatmap_linewidths,
+        heatmap_cbar_kws=dict(
+            use_gridspec=False,
+            location="right",
+            fraction=cbar_fraction,
+            pad=cbar_pad,
+            drawedges=True,
+        ),
+        dpi=dpi,
+    )
+    ax.set_xlabel(None)
+    ax.set_xticklabels(ax.get_xticklabels(), fontsize=9)
+
+    ax.set_ylabel(None)
+    ax.set_yticklabels(ax.get_yticklabels(), fontsize=9)
+
+    # additional setup on colorbar
+    cbar = ax.collections[0].colorbar
+    cbar.set_ticks([-0.5, -0.25, 0, 0.25, 0.5])
+    cbar.set_ticklabels(["<-50%", "-25%", "0%", "25%", ">50%"])
+    cbar.ax.set_ylabel(
+        "Relative $\Delta (R^2)$", rotation=270, fontsize=9, labelpad=6.0
+    )
+    cbar.outline.set_edgecolor("black")
+    cbar.outline.set_linewidth(0.8)
+    cbar.ax.tick_params(labelsize=8)
+    cbar.ax.tick_params(size=0)
+
+    for _, spine in ax.spines.items():
+        spine.set_visible(True)
+
+    return fig, ax
 
 
 if __name__ == "__main__":
