@@ -212,7 +212,8 @@ if (binary_trait_flag) {
 model <- train_func(mean_mat = mean_mat, sd_mat = sd_mat, y = y)
 
 # save coefficients
-rows <- unique(unlist(sapply(model, names)))
+rows <- unique(c(sapply(model, names)))
+# rows <- unique(unlist(sapply(model, names)))
 model_df <- data.frame(sapply(model, function(coefs) {
   coefs[match(rows, names(coefs))]
 }), row.names = NULL)
@@ -243,6 +244,6 @@ write.table(
 log_info(
   paste0("Coefficients/fitted values saved to ", 
   opt$out_prefix, ".coef.tsv", 
-  "/", 
+  " and ", 
   opt$out_prefix, ".fitted.tsv")
 )

@@ -12,6 +12,18 @@ import fire
 logger = structlog.get_logger()
 
 
+def quantile_normalize(values: np.ndarray):
+    from scipy.stats import rankdata, norm
+
+    values = np.array(values)
+    non_nan_index = ~np.isnan(values)
+    results = np.full(values.shape, np.nan)
+    results[non_nan_index] = norm.ppf(
+        (rankdata(values[non_nan_index]) - 0.5) / len(values[non_nan_index])
+    )
+    return results
+
+
 def log_params(name, params):
     logger.info(
         f"Received parameters: \n{name}\n  "
