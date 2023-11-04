@@ -1,2 +1,4 @@
 .ipynb_checkpoints/
 .virtual_documents/
+*.egg-info/
+__pycache__/
