@@ -11,4 +11,8 @@ setup(
     packages=["calpred"],
     setup_requires=["numpy>=1.10"],
     entry_points={"console_scripts": ["calpred=calpred.cli:cli"]},
+    package_data={
+        "calpred": ["calpred.cli.R"],
+    },
+    zip_safe=False,
 )
