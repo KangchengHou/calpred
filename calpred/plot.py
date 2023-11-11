@@ -4,6 +4,8 @@ import seaborn as sns
 from typing import List, Union, Dict
 import numpy as np
 import pandas as pd
+import seaborn as sns
+
 from . import logger
 
 
@@ -246,3 +248,85 @@ def plot_coef_heatmap(
         spine.set_visible(True)
 
     return fig, ax
+
+
+def plot_scatter_calibration(x, y, ax=None, legend=False, s=0.1, downsample=1.0):
+    from scipy.stats import linregress
+
+    if ax is None:
+        ax = plt.gca()
+    ax.axline((x.mean(), x.mean()), slope=1, ls="--", color="blue", label="y=x")
+    slope, intercept = linregress(x=x, y=y)[0:2]
+
+    ax.scatter(x, y, s=0.1)
+
+    ax.axline(
+        (0, intercept),
+        slope=slope,
+        ls="--",
+        color="red",
+        label=f"y={slope:.2f}x+{intercept:.2f}",
+    )
+
+    if legend:
+        ax.legend(loc="upper left", fontsize=8)
+
+
+# def plot_intervals(idx, ax=None):
+#     if ax is None:
+#         ax = plt.gca()
+#     ax.scatter(q2x(model.fittedvalues), data_df["VitD"], s=1, color="black")
+#     center = data_df["VitD"].mean()
+#     ax.axline((center, center), slope=1, color="red", ls="--")
+#     ax.set_xlabel("Predicted")
+#     ax.set_ylabel("Phenotype")
+
+#     # plot top and bottom individuals
+#     y = q2x(df.loc[idx, "mean"])
+#     low = q2x(df.loc[idx, "mean"] - df.loc[idx, "sd"] * 1.645)
+#     high = q2x(df.loc[idx, "mean"] + df.loc[idx, "sd"] * 1.645)
+
+#     ax.errorbar(
+#         x=y,
+#         y=y,
+#         yerr=[y - low, high - y],
+#         fmt=".",
+#         color="red",
+#         capsize=3,
+#         linewidth=1.0,
+#     )
+#     # annotate bottom
+#     ax.text(
+#         x=y[0],
+#         y=high[0] + 5,
+#         s=f"[{low[0]:.1f}, {high[0]:.1f}]",
+#         color="red",
+#         ha="center",
+#         va="bottom",
+#         fontsize=15,
+#     )
+
+#     # annotate top
+#     ax.text(
+#         x=y[-1],
+#         y=high[-1] + 5,
+#         s=f"[{low[-1]:.1f}, {high[-1]:.1f}]",
+#         color="red",
+#         ha="center",
+#         va="bottom",
+#         fontsize=15,
+#     )
+#     ax.axhline(y=25, ls="--", color="blue", lw=0.5)
+#     ax.axhline(y=80, ls="--", color="blue", lw=0.5)
+#     ax.axhspan(ymin=25, ymax=80, color="blue", alpha=0.1)
+#     ax.text(
+#         x=q2x(np.mean(model.fittedvalues)),
+#         y=80,
+#         ha="center",
+#         va="top",
+#         s="European RI",
+#         fontsize=15,
+#         color="blue",
+#     )
+
+#     return fig, ax

@@ -41,7 +41,12 @@ def simulate_gxe(
 
     Returns
     -------
-    ymat (n_indiv, 2), prsmat, gmat, emat, beta, betaprs
+    ymat (n_indiv, 2, n_rep)
+    prsmat (n_indiv, 2, n_rep), using PRS from pop1
+    gmat (n_indiv, 2, n_rep)
+    emat (n_indiv, 2, n_rep)
+    beta (n_snp, 2, n_rep)
+    betaprs (n_snp, n_rep)
     """
     if scenario == 1:
         assert (hsq is not None) and (rg is not None)
