@@ -83,5 +83,5 @@ def predict(x: pd.DataFrame, z: pd.DataFrame, x_coef: pd.Series, z_coef: pd.Seri
     assert np.all(z.columns == z_coef.index)
 
     y_mean = x.dot(x_coef)
-    y_sd = np.exp(z.dot(z_coef))
+    y_sd = np.sqrt(np.exp(z.dot(z_coef)))
     return y_mean, y_sd
