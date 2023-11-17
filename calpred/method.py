@@ -4,6 +4,9 @@ import statsmodels.api as sm
 import subprocess
 import tempfile
 import os
+from collections import namedtuple
+
+CalPredFit = namedtuple("CalPredFit", "mean_coef mean_se sd_coef sd_se")
 
 
 def fit(y: np.ndarray, x: pd.DataFrame, z: pd.DataFrame):
@@ -14,9 +17,9 @@ def fit(y: np.ndarray, x: pd.DataFrame, z: pd.DataFrame):
     y : np.ndarray
         response variable
     x : pd.DataFrame
-        data matrix for mean effects
+        data matrix for mean effects, without intercept
     z : pd.DataFrame
-        data matrix for standard errors
+        data matrix for standard errors, without intercept
 
     Returns
     -------
@@ -52,8 +55,7 @@ def fit(y: np.ndarray, x: pd.DataFrame, z: pd.DataFrame):
 
     tmp_dir_obj.cleanup()
 
-    # mean_coef, sd_coef, mean_se, sd_se
-    return (
+    return CalPredFit(
         pd.Series(mean_coef[:, 0], index=x.columns),
         pd.Series(mean_coef[:, 1], index=x.columns),
         pd.Series(sd_coef[:, 0], index=z.columns),
@@ -61,7 +63,7 @@ def fit(y: np.ndarray, x: pd.DataFrame, z: pd.DataFrame):
     )
 
 
-def predict(x: pd.DataFrame, z: pd.DataFrame, x_coef: pd.Series, z_coef: pd.Series):
+def predict(x: pd.DataFrame, z: pd.DataFrame, model_fit: CalPredFit):
     """predict CalPred model
 
     Parameters
@@ -75,6 +77,8 @@ def predict(x: pd.DataFrame, z: pd.DataFrame, x_coef: pd.Series, z_coef: pd.Seri
     z_coef : pd.Series
         standard deviation coefficients
     """
+    x_coef = model_fit.mean_coef
+    z_coef = model_fit.sd_coef
     assert np.all(x.index == z.index)
     x = sm.add_constant(x)
     z = sm.add_constant(z)
