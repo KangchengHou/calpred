@@ -30,3 +30,9 @@ Rscript calpred.cli.R \
 ## Example notebooks
 - [Introduction with a simulated dataset](https://nbviewer.org/github/KangchengHou/calpred/blob/main/introduction.ipynb)
 - [Example analysis pipeline](https://nbviewer.org/github/KangchengHou/calpred/blob/main/example.ipynb)
+
+## Upload to PyPI
+```bash
+python setup.py sdist
+twine upload dist/*
+```

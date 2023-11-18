@@ -7,7 +7,9 @@ from setuptools import setup
 setup(
     name="calpred",
     version="0.1",
-    description="Calibrated prediction intervals",
+    description="calibrated prediction across diverse contexts",
+    long_description=open("README.md", "r").read(),
+    long_description_content_type="text/markdown",
     packages=["calpred"],
     setup_requires=["numpy>=1.10"],
     entry_points={"console_scripts": ["calpred=calpred.cli:cli"]},
