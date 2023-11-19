@@ -6,4 +6,4 @@ from .plot import *
 from .utils import *
 from .simulate import *
 from .method import *
-import cli
+from . import cli
