@@ -4,9 +4,93 @@ import statsmodels.api as sm
 import subprocess
 import tempfile
 import os
-from collections import namedtuple
+from dataclasses import dataclass
+import json
 
-CalPredFit = namedtuple("CalPredFit", "mean_coef mean_se sd_coef sd_se")
+
+@dataclass
+class CalPredFit:
+    """A dataclass for representing calibration prediction fits.
+
+    Parameters
+
+    Attributes:
+        mean_coef (pd.Series): mean coefficients.
+        mean_se (pd.Series): standard errors of the mean coefficients.
+        sd_coef (pd.Series): standard deviation coefficients.
+        sd_se (pd.Series): standard errors of the standard deviation.
+
+    Example:
+        # Create pandas Series
+        mean_coef_series = pd.Series([1.0, 2.0, 3.0], name="mean_coef")
+        mean_se_series = pd.Series([0.1, 0.2, 0.3], name="mean_se")
+        sd_coef_series = pd.Series([2.0, 4.0, 6.0], name="sd_coef")
+        sd_se_series = pd.Series([0.2, 0.4, 0.6], name="sd_se")
+
+        # Create CalPredFit instance
+        model = CalPredFit(
+            mean_coef=mean_coef_series,
+            mean_se=mean_se_series,
+            sd_coef=sd_coef_series,
+            sd_se=sd_se_series
+        )
+
+        # Save to JSON
+        model.to_json('cal_pred_fit.json')
+
+        # Load from JSON
+        model = CalPredFit.from_json('cal_pred_fit.json')
+    """
+
+    mean_coef: pd.Series
+    mean_se: pd.Series
+    sd_coef: pd.Series
+    sd_se: pd.Series
+
+    def to_json(self, path: str):
+        """Serialize the instance to a JSON file.
+
+        Parameters
+        ----------
+        path: str
+            The name of the JSON file to save the data.
+        """
+        data_dict = {
+            "mean_coef": self.mean_coef.to_dict(),
+            "mean_se": self.mean_se.to_dict(),
+            "sd_coef": self.sd_coef.to_dict(),
+            "sd_se": self.sd_se.to_dict(),
+        }
+
+        with open(path, "w") as f:
+            json.dump(data_dict, f)
+
+    @classmethod
+    def from_json(self, path: str):
+        """Deserialize the instance from a JSON file.
+
+        Parameters
+        ----------
+        path: str
+            The name of the JSON file to load the data.
+
+        Returns
+        -------
+        CalPredFit: An instance of CalPredFit loaded from the JSON file.
+
+        Example
+        -------
+        new_cal_pred_fit = CalPredFit.from_json('cal_pred_fit.json')
+        """
+        with open(path, "r") as f:
+            data_dict = json.load(f)
+
+        return self(
+            mean_coef=pd.Series(data_dict["mean_coef"]),
+            mean_se=pd.Series(data_dict["mean_se"]),
+            sd_coef=pd.Series(data_dict["sd_coef"]),
+            sd_se=pd.Series(data_dict["sd_se"]),
+        )
 
 
 def fit(y: np.ndarray, x: pd.DataFrame, z: pd.DataFrame):
