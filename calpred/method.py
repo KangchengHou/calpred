@@ -47,14 +47,15 @@ class CalPredFit:
     sd_coef: pd.Series
     sd_se: pd.Series
 
-    def __str__(self):
+    def __repr__(self):
         """Custom string representation for CalPredFit."""
         return (
-            f"CalPredFit(\n"
-            f"  mean_coef:\n{self.mean_coef}\n"
-            f"  mean_se:\n{self.mean_se}\n"
-            f"  sd_coef:\n{self.sd_coef}\n"
-            f"  sd_se:\n{self.sd_se}\n)"
+            f"CalPredFit(\n" + "-" * 20 + "\n"
+            f"mean_coef\n{self.mean_coef.to_string()}\n" + "-" * 20 + "\n"
+            f"mean_se\n{self.mean_se.to_string()}\n" + "-" * 20 + "\n"
+            f"sd_coef\n{self.sd_coef.to_string()}\n" + "-" * 20 + "\n"
+            f"sd_se\n{self.sd_se.to_string()}\n" + "-" * 20 + "\n"
+            ")"
         )
 
     def to_json(self, path: str):
@@ -146,6 +147,10 @@ def fit(y: np.ndarray, x: pd.DataFrame, z: pd.DataFrame):
 
     mean_coef = np.loadtxt(out_prefix + ".mean")
     sd_coef = np.loadtxt(out_prefix + ".sd")
+
+    if z.shape[1] == 1:
+        # make sd_coef a column vector
+        sd_coef = sd_coef.reshape(1, -1)
 
     tmp_dir_obj.cleanup()
 
