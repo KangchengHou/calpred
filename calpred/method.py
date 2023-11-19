@@ -47,6 +47,16 @@ class CalPredFit:
     sd_coef: pd.Series
     sd_se: pd.Series
 
+    def __str__(self):
+        """Custom string representation for CalPredFit."""
+        return (
+            f"CalPredFit(\n"
+            f"  mean_coef:\n{self.mean_coef}\n"
+            f"  mean_se:\n{self.mean_se}\n"
+            f"  sd_coef:\n{self.sd_coef}\n"
+            f"  sd_se:\n{self.sd_se}\n)"
+        )
+
     def to_json(self, path: str):
         """Serialize the instance to a JSON file.
 
