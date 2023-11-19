@@ -49,12 +49,21 @@ class CalPredFit:
 
     def __repr__(self):
         """Custom string representation for CalPredFit."""
+        mean_str = pd.DataFrame(
+            {"coef": self.mean_coef, "se": self.mean_se}
+        ).to_string()
+        sd_str = pd.DataFrame({"coef": self.sd_coef, "se": self.sd_se}).to_string()
+
         return (
-            f"CalPredFit(\n" + "-" * 20 + "\n"
-            f"mean_coef\n{self.mean_coef.to_string()}\n" + "-" * 20 + "\n"
-            f"mean_se\n{self.mean_se.to_string()}\n" + "-" * 20 + "\n"
-            f"sd_coef\n{self.sd_coef.to_string()}\n" + "-" * 20 + "\n"
-            f"sd_se\n{self.sd_se.to_string()}\n" + "-" * 20 + "\n"
+            f"CalPredFit(\n"
+            + "-----------mean coefficients-----------\n"
+            + mean_str
+            + "\n"
+            + "------------sd coefficients------------\n"
+            + sd_str
+            + "\n"
+            + "-" * 38
+            + "\n"
             ")"
         )
 
@@ -74,7 +83,7 @@ class CalPredFit:
         }
 
         with open(path, "w") as f:
-            json.dump(data_dict, f)
+            json.dump(data_dict, f, indent=2)
 
     @classmethod
     def from_json(self, path: str):
@@ -102,6 +111,21 @@ class CalPredFit:
             sd_coef=pd.Series(data_dict["sd_coef"]),
             sd_se=pd.Series(data_dict["sd_se"]),
         )
+
+
+def load_calpred_fit(path: str):
+    """Load a CalPredFit from a JSON file.
+
+    Parameters
+    ----------
+    path: str
+        The name of the JSON file to load the data.
+
+    Returns
+    -------
+    CalPredFit: An instance of CalPredFit loaded from the JSON file.
+    """
+    return CalPredFit.from_json(path)
 
 
 def fit(y: np.ndarray, x: pd.DataFrame, z: pd.DataFrame):
