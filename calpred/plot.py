@@ -264,7 +264,8 @@ def plot_scatter_calibration(x, y, ax=None, legend=False, s=0.1, downsample=1.0)
         (0, intercept),
         slope=slope,
         ls="--",
-        color="red",
+        color="black",
+        lw=1,
         label=f"y={slope:.2f}x+{intercept:.2f}",
     )
 
@@ -297,6 +298,9 @@ def plot_prob_calibration(prob, y, n_q=30, ax=None, color="blue", label=None, ci
         capsize=2,
         label=label,
     )
+    ax.set_xlabel("Predicted")
+    ax.set_ylabel("Observed")
+
     ax.plot(stats_df["prob"], stats_df["y"], lw=0.5, color=color)
     ax.axline((0, 0), slope=1, ls="-", color="red", lw=1)
 

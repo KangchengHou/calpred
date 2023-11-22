@@ -1,5 +1,50 @@
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
+
+
+def simulate_toy_quant_data(
+    n,
+    sd_coef=pd.Series(
+        {"intercept": np.log(7 / 3), "ancestry": 0.2, "age": -0.15, "sex": 0.2}
+    ),
+):
+    # Simulate contexts
+    data = pd.DataFrame(
+        {
+            "yhat": np.random.normal(size=n),
+            "intercept": 1,
+            "ancestry": np.random.uniform(size=n),
+            "age": np.random.normal(loc=40, scale=10, size=n),
+            "sex": np.random.binomial(n=1, p=0.5, size=n),
+        }
+    )
+
+    # Create categorical labels
+    data["ancestry_label"] = pd.cut(data["ancestry"], bins=5, labels=False)
+    data["age_label"] = pd.cut(data["age"], bins=5, labels=False)
+    data["sex_label"] = np.where(data["sex"] > 0, "Female", "Male")
+
+    # Standardize numerical features
+    data[["ancestry", "age", "sex"]] = (
+        data[["ancestry", "age", "sex"]] - data[["ancestry", "age", "sex"]].mean()
+    ) / data[["ancestry", "age", "sex"]].std()
+
+    # Simulate phenotype mean
+    y_mean = data["yhat"]
+
+    # Calculate standard deviation
+    sd_mat = data[["intercept", "ancestry", "age", "sex"]].values
+    y_sd = np.sqrt(np.exp(sd_mat.dot(sd_coef)))
+
+    # Simulate phenotype
+    data["y"] = np.random.normal(loc=y_mean, scale=y_sd)
+
+    # quantile -> real phenotype
+    # pheno = sorted(poisson.rvs(mu=120, size=n, loc=10))
+    # data["pheno"] = pheno[data["y"].rank(method="first")]
+
+    return data
 
 
 def simulate_gxe(
