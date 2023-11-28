@@ -8,6 +8,8 @@ from dataclasses import dataclass
 import json
 from scipy import stats
 
+rscript_bin = "Rscript"
+
 
 @dataclass
 class CalPredFit:
@@ -182,7 +184,7 @@ def fit(y: np.ndarray, x: pd.DataFrame, z: pd.DataFrame):
     out_prefix = os.path.join(os.path.abspath(tmp_dir), "fit")
     rscript = os.path.join(os.path.dirname(__file__), "calpred.R")
 
-    subprocess.run(["Rscript", rscript, y_file, x_file, z_file, out_prefix])
+    subprocess.run([rscript_bin, rscript, y_file, x_file, z_file, out_prefix])
 
     mean_coef = np.loadtxt(out_prefix + ".mean")
     sd_coef = np.loadtxt(out_prefix + ".sd")
@@ -270,7 +272,7 @@ def fit_binary(y: np.ndarray, x: pd.DataFrame, z: pd.DataFrame, verbose: bool = 
     out_prefix = os.path.join(os.path.abspath(tmp_dir), "fit")
     rscript = os.path.join(os.path.dirname(__file__), "calpred_binary.R")
 
-    subprocess.run(["Rscript", rscript, y_file, x_file, z_file, out_prefix])
+    subprocess.run([rscript_bin, rscript, y_file, x_file, z_file, out_prefix])
 
     mean_coef = np.loadtxt(out_prefix + ".mean")
     sd_coef = np.loadtxt(out_prefix + ".sd")
