@@ -8,8 +8,6 @@ from dataclasses import dataclass
 import json
 from scipy import stats
 
-rscript_bin = "Rscript"
-
 
 @dataclass
 class CalPredFit:
@@ -145,7 +143,7 @@ def load_calpred_fit(path: str):
     return CalPredFit.from_json(path)
 
 
-def fit(y: np.ndarray, x: pd.DataFrame, z: pd.DataFrame):
+def fit(y: np.ndarray, x: pd.DataFrame, z: pd.DataFrame, rscript_bin="Rscript"):
     """Fit CalPred model
 
     Parameters
@@ -231,7 +229,13 @@ def predict(x: pd.DataFrame, z: pd.DataFrame, model_fit: CalPredFit):
     return y_mean, y_sd
 
 
-def fit_binary(y: np.ndarray, x: pd.DataFrame, z: pd.DataFrame, verbose: bool = False):
+def fit_binary(
+    y: np.ndarray,
+    x: pd.DataFrame,
+    z: pd.DataFrame,
+    verbose: bool = False,
+    rscript_bin="Rscript",
+):
     """Fit CalPred model for binary response variable
 
     Parameters
