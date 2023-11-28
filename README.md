@@ -5,8 +5,7 @@ See [companion manuscript github repository](https://github.com/KangchengHou/cal
 ## Installation
 ```bash
 git clone https://github.com/KangchengHou/calpred.git && cd calpred/
-Rscript -e "install.packages(c('statmod', 'Rchoice', 'logger', 'optparse', 'glue'), repos='https://cran.rstudio.com')" # calpred dependency
-Rscript -e "install.packages(c('devtools', 'ggplot2', 'dplyr', 'patchwork'), repos='https://cran.rstudio.com')" # for example notebooks
+Rscript -e "install.packages(c('statmod', 'Rchoice'), repos='https://cran.rstudio.com')" # calpred dependency
 ```
 
 ## Quick example

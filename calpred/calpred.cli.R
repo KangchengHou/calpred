@@ -1,8 +1,6 @@
 #!/usr/bin/env Rscript
 
 # Load required libraries
-library(optparse)
-library(logger)
 suppressPackageStartupMessages(library(statmod))
 suppressPackageStartupMessages(library(Rchoice))
 
