@@ -1,7 +1,6 @@
 # calpred.cli.R is for standalone use
 # calpred.R is to be paired with calpred.fit.py
 
-suppressPackageStartupMessages(library(statmod))
 suppressPackageStartupMessages(library(Rchoice))
 
 

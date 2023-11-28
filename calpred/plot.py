@@ -250,15 +250,20 @@ def plot_coef_heatmap(
     return fig, ax
 
 
-def plot_scatter_calibration(x, y, ax=None, legend=False, s=0.1, downsample=1.0):
+def plot_scatter_calibration(x, y, ax=None, legend=False, s=0.5, downsample=1.0):
     from scipy.stats import linregress
 
+    x, y = np.array(x), np.array(y)
     if ax is None:
         ax = plt.gca()
     ax.axline((x.mean(), x.mean()), slope=1, ls="--", color="blue", label="y=x")
     slope, intercept = linregress(x=x, y=y)[0:2]
 
-    ax.scatter(x, y, s=0.1)
+    if downsample < 1:
+        n = len(x)
+        idx = np.random.choice(np.arange(n), size=int(n * downsample), replace=False)
+        x, y = x[idx], y[idx]
+    ax.scatter(x, y, s=s, marker=".", edgecolors="C0", c="C0")
 
     ax.axline(
         (0, intercept),
