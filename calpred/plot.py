@@ -197,6 +197,7 @@ def plot_coef_heatmap(
     dpi=150,
     flip_value=False,
     cmap="bwr",
+    cbar_ticks=[-0.2, -0.1, 0, 0.1, 0.2],
 ):
     if flip_value:
         value_df *= -1
@@ -229,8 +230,7 @@ def plot_coef_heatmap(
     ax.set_yticklabels(ax.get_yticklabels(), fontsize=9)
 
     cbar = ax.collections[0].colorbar
-    cbar.set_ticks([-0.2, -0.1, 0, 0.1, 0.2])
-    cbar.set_ticklabels(["-0.2", "-0.1", "0", "0.1", "0.2"])
+    cbar.set_ticks(cbar_ticks)
     if flip_value:
         cbar_ylabel = r"Negative estimated $\beta$"
     else:
