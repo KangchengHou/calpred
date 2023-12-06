@@ -276,7 +276,10 @@ def fit_binary(
     out_prefix = os.path.join(os.path.abspath(tmp_dir), "fit")
     rscript = os.path.join(os.path.dirname(__file__), "calpred_binary.R")
 
-    subprocess.run([rscript_bin, rscript, y_file, x_file, z_file, out_prefix])
+    subprocess.run(
+        [rscript_bin, rscript, y_file, x_file, z_file, out_prefix],
+        stdout=subprocess.DEVNULL if verbose else None,
+    )
 
     mean_coef = np.loadtxt(out_prefix + ".mean")
     sd_coef = np.loadtxt(out_prefix + ".sd")
@@ -321,4 +324,9 @@ def predict_binary(x: pd.DataFrame, z: pd.DataFrame, model_fit: CalPredFit):
     y_sd = np.sqrt(np.exp(z.dot(z_coef)))
     y_prob = stats.norm.cdf(y_mean / y_sd)
 
-    return y_prob, y_mean, y_sd
+    index = x.index
+    return (
+        pd.Series(y_prob, index=index),
+        pd.Series(y_mean, index=index),
+        pd.Series(y_sd, index=index),
+    )
