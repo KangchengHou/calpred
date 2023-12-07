@@ -307,7 +307,7 @@ def plot_prob_calibration(prob, y, n_q=30, ax=None, color="blue", label=None, ci
     ax.set_ylabel("Observed")
 
     ax.plot(stats_df["prob"], stats_df["y"], lw=0.5, color=color)
-    ax.axline((0, 0), slope=1, ls="-", color="red", lw=1)
+    ax.axline((0, 0), slope=1, ls="-", color="black", lw=1)
 
 
 # def plot_intervals(idx, ax=None):
