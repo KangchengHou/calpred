@@ -190,3 +190,98 @@ def simulate_gxe2(
     if scenario == 3:
         ymat[:, 1, :] *= prop_amp
     return ymat, gmat, emat
+
+
+def simulate_gxe3(
+    n_rep: int = 100,
+    n_indiv: int = 10000,
+    n_gwas: int = 20000,
+    n_snp: int = 10000,
+    var_g1: float = 0.5,
+    var_g2: float = 0.5,
+    rg: float = 1,
+    var_e1: float = 0.5,
+    var_e2: float = 0.5,
+):
+    """Simulate three modes of GxE as in Durvasula & Price 2023
+
+    Parameters
+    ----------
+    scenario : int
+        which scenario, 1,2,3
+    n_rep : int, optional
+        number of replicates, by default 100
+    n_indiv : int, optional
+        number of individuals, by default 10000
+    n_gwas : int, optional
+        number of GWAS individuals, used to simulate GWAS noise, by default 20000
+    n_snp : int, optional
+        number of SNPs to simulate, by default 10000
+    hsq : float, optional
+        heritability, by default None
+    rg : float, optional
+        genetic correlation, by default None
+    hsq1 : float, optional
+        heritability in pop1, by default None
+    hsq2 : float, optional
+        heritability in pop2, by default None
+    prop_amp : float, optional
+        proportional amplification magnitude, by default None
+
+    Returns
+    -------
+    ymat (n_indiv, 2, n_rep)
+    prsmat (n_indiv, 2, n_rep), using PRS from pop1
+    gmat (n_indiv, 2, n_rep)
+    emat (n_indiv, 2, n_rep)
+    beta (n_snp, 2, n_rep)
+    betaprs (n_snp, n_rep)
+    """
+    beta_cov = (
+        np.array(
+            [
+                [var_g1, rg * np.sqrt(var_g1 * var_g2)],
+                [rg * np.sqrt(var_g1 * var_g2), var_g2],
+            ]
+        )
+        / n_snp
+    )
+
+    e_var = [var_e1, var_e2]
+
+    hsq1 = var_g1 / (var_g1 + var_e1)
+    hsq2 = var_g2 / (var_g2 + var_e2)
+
+    # generate standardized genotypes
+    xmat1 = np.random.binomial(n=2, p=0.5, size=(n_indiv, n_snp))
+    xmat2 = np.random.binomial(n=2, p=0.5, size=(n_indiv, n_snp))
+    xmat1 = (xmat1 - xmat1.mean(axis=0)) / xmat1.std(axis=0)
+    xmat2 = (xmat2 - xmat2.mean(axis=0)) / xmat2.std(axis=0)
+
+    # simulate effect sizes
+    beta = np.zeros((n_snp, 2, n_rep))
+    betaprs = np.zeros((n_snp, n_rep))
+    emat = np.zeros([n_indiv, 2, n_rep])
+
+    for i in tqdm(range(n_rep)):
+        beta_i = np.random.multivariate_normal(mean=[0, 0], cov=beta_cov, size=n_indiv)
+
+        # generate betahat and betaprs using pop1
+        betahat_i = beta_i[:, 0] + np.random.normal(
+            0, scale=np.sqrt((1 - hsq1 / n_snp) / n_gwas), size=n_snp
+        )
+        betaprs_i = betahat_i * hsq1 / (hsq1 + n_snp / n_gwas)
+        beta[:, :, i] = beta_i
+        betaprs[:, i] = betaprs_i
+        emat[:, :, i] = np.random.normal(scale=np.sqrt(e_var), size=(n_indiv, 2))
+
+    gmat = np.zeros([n_indiv, 2, n_rep])
+    prsmat = np.zeros([n_indiv, 2, n_rep])
+
+    gmat[:, 0, :] = xmat1 @ beta[:, 0, :]
+    gmat[:, 1, :] = xmat2 @ beta[:, 1, :]
+    prsmat[:, 0, :] = xmat1 @ betaprs
+    prsmat[:, 1, :] = xmat2 @ betaprs
+    ymat = gmat + emat
+
+    return ymat, prsmat, gmat, emat, beta, betaprs

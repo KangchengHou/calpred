@@ -250,28 +250,35 @@ def plot_coef_heatmap(
     return fig, ax
 
 
-def plot_scatter_calibration(x, y, ax=None, legend=False, s=0.5, downsample=1.0):
+def plot_scatter_calibration(x, y, ax=None, legend=False, s=5, downsample=1.0):
     from scipy.stats import linregress
 
     x, y = np.array(x), np.array(y)
     if ax is None:
         ax = plt.gca()
-    ax.axline((x.mean(), x.mean()), slope=1, ls="--", color="blue", label="y=x")
+    ax.axline(
+        (x.mean(), x.mean()),
+        slope=1,
+        ls="--",
+        color="black",
+        label="y=x",
+        lw=1,
+    )
     slope, intercept = linregress(x=x, y=y)[0:2]
 
     if downsample < 1:
         n = len(x)
         idx = np.random.choice(np.arange(n), size=int(n * downsample), replace=False)
         x, y = x[idx], y[idx]
-    ax.scatter(x, y, s=s, marker=".", edgecolors="C0", c="C0")
+    ax.scatter(x, y, s=s, marker=".", edgecolors="none", c="C0")
 
     ax.axline(
         (0, intercept),
         slope=slope,
         ls="--",
-        color="black",
-        lw=1,
-        label=f"y={slope:.2f}x+{intercept:.2f}",
+        color="red",
+        # label=f"y={slope:.2f}x+{intercept:.2f}",
+        label=f"y={slope:.2f}x",
     )
 
     if legend:
@@ -307,7 +314,7 @@ def plot_prob_calibration(prob, y, n_q=30, ax=None, color="blue", label=None, ci
     ax.set_ylabel("Observed")
 
     ax.plot(stats_df["prob"], stats_df["y"], lw=0.5, color=color)
-    ax.axline((0, 0), slope=1, ls="-", color="black", lw=1)
+    ax.axline((0, 0), slope=1, ls="--", color="black", lw=1)
 
 
 # def plot_intervals(idx, ax=None):
