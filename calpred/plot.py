@@ -5,7 +5,8 @@ from typing import List, Union, Dict
 import numpy as np
 import pandas as pd
 import seaborn as sns
-
+from matplotlib.patches import Patch
+from matplotlib.ticker import FuncFormatter
 from . import logger
 
 
@@ -76,6 +77,7 @@ def plot_heatmap(
 def plot_r2_heatmap(
     value_df: pd.DataFrame,
     pval_df: pd.DataFrame,
+    annot_df: pd.DataFrame = None,
     baseline_df: pd.Series = None,
     cbar_pad=0.04,
     cbar_fraction=0.0188,
@@ -108,19 +110,20 @@ def plot_r2_heatmap(
     assert np.all(value_df.index == pval_df.index) and np.all(
         value_df.columns == pval_df.columns
     )
-    annot_df = pd.DataFrame("", index=value_df.index, columns=value_df.columns)
-    for r in value_df.index:
-        for c in value_df.columns:
-            val, pval = value_df.loc[r, c], pval_df.loc[r, c]
-            if np.isnan(val):
-                annot = "NA"
-            elif pval < 0.05 / pval_df.size:
-                annot = f"{val * 100:+.0f}%"
-            elif pval < 0.05 / pval_df.shape[0]:
-                annot = "*"
-            else:
-                annot = ""
-            annot_df.loc[r, c] = annot
+    if annot_df is None:
+        annot_df = pd.DataFrame("", index=value_df.index, columns=value_df.columns)
+        for r in value_df.index:
+            for c in value_df.columns:
+                val, pval = value_df.loc[r, c], pval_df.loc[r, c]
+                if np.isnan(val):
+                    annot = "NA"
+                elif pval < 0.05 / pval_df.size:
+                    annot = f"{val * 100:+.0f}%"
+                elif pval < 0.05 / pval_df.shape[0]:
+                    annot = "*"
+                else:
+                    annot = ""
+                annot_df.loc[r, c] = annot
 
     # after constructing annotation, fill missing values with NA
     value_df, pval_df = value_df.fillna(0.0), pval_df.fillna(0.0)
@@ -201,7 +204,7 @@ def plot_coef_heatmap(
 ):
     if flip_value:
         value_df *= -1
-    annot_df = value_df.applymap(lambda x: f"{x:.2f}" if ~np.isnan(x) else "NA")
+    annot_df = value_df.map(lambda x: f"{x:.2f}" if ~np.isnan(x) else "NA")
     value_df = value_df.fillna(0.0)
 
     fig, ax = plot_heatmap(
@@ -315,6 +318,336 @@ def plot_prob_calibration(prob, y, n_q=30, ax=None, color="blue", label=None, ci
 
     ax.plot(stats_df["prob"], stats_df["y"], lw=0.5, color=color)
     ax.axline((0, 0), slope=1, ls="--", color="black", lw=1)
+
+
+def compare_values(
+    x: np.ndarray,
+    y: np.ndarray,
+    xlabel: str = None,
+    ylabel: str = None,
+    ax=None,
+    s: int = 5,
+):
+    """Compare two p-values.
+    Parameters
+    ----------
+    x_pval: np.ndarray
+        The p-value for the first variable.
+    y_pval: np.ndarray
+        The p-value for the second variable.
+    xlabel: str
+        The label for the first variable.
+    ylabel: str
+        The label for the second variable.
+    ax: matplotlib.Axes
+        A matplotlib axes object to plot on. If None, will create a new one.
+    """
+    if ax is None:
+        ax = plt.gca()
+    if not isinstance(x, np.ndarray):
+        x = np.array(x)
+    if not isinstance(y, np.ndarray):
+        y = np.array(y)
+    nonnan_idx = ~np.isnan(x) & ~np.isnan(y)
+    x, y = x[nonnan_idx], y[nonnan_idx]
+    ax.scatter(x, y, s=s)
+    lim = max(np.nanmax(np.abs(x)), np.nanmax(np.abs(y))) * 1.1
+    ax.axline((0, 0), slope=1, color="k", ls="--", alpha=0.5, lw=1, label="y=x")
+
+    # add a regression line
+    slope = np.linalg.lstsq(x[:, None], y[:, None], rcond=None)[0].item()
+
+    ax.axline(
+        (0, 0),
+        slope=slope,
+        color="black",
+        ls="--",
+        lw=1,
+        label=f"y={slope:.2f} x",
+    )
+    ax.set_xlim(-lim, lim)
+    ax.set_ylim(-lim, lim)
+
+    ax.legend()
+    if xlabel is not None:
+        ax.set_xlabel(xlabel)
+    if ylabel is not None:
+        ax.set_ylabel(ylabel)
+
+
+def lighten_color(color, amount=1.25):
+    """
+    Lightens the given color by multiplying (1-luminosity) by the given amount.
+    Input can be matplotlib color string, hex string, or RGB tuple.
+
+    Examples:
+    >> lighten_color('g', 0.3)
+    >> lighten_color('#F034A3', 0.6)
+    >> lighten_color((.3,.55,.1), 0.5)
+    """
+    import matplotlib.colors as mc
+    import colorsys
+
+    try:
+        c = mc.cnames[color]
+    except:
+        c = color
+    c = colorsys.rgb_to_hls(*mc.to_rgb(c))
+    return colorsys.hls_to_rgb(c[0], 1 - amount * (1 - c[1]), c[2])
+
+
+def color_boxplot(bplot, color):
+    for i in range(len(bplot["boxes"])):
+        for obj in ["whiskers", "caps", "fliers", "medians"]:
+            for patch in bplot[obj]:
+                patch.set_color(color)
+        bplot["boxes"][i].set(color=color)
+
+
+def _group_plot(
+    df,
+    val_col,
+    groups,
+    axes,
+    pos_offset,
+    color,
+    plot_type="box",
+    edge_alpha=None,
+    widths=0.2,
+):
+    """Box / line plots for each group (in each panel)
+    df should contain "group", "subgroup"
+    each group corresponds to a panel, each subgroup corresponds to
+    different x within the panel
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        dataframe containing 'group', 'subgroup', val_col
+    val_col : str
+        column containing the values
+    """
+    assert plot_type in ["box", "line"]
+
+    for group_i, group in enumerate(groups):
+        df_group = df[df.group == group]
+        dict_val = {
+            group: df_tmp[val_col].values
+            for group, df_tmp in df_group.groupby("subgroup")
+        }
+        x = list(dict_val.keys())
+        vals = list(dict_val.values())
+        means = [np.mean(_) for _ in vals]
+        sems = [np.std(_) / np.sqrt(len(_)) for _ in vals]
+        if plot_type == "box":
+            props = {"linewidth": 0.65}
+            bplot = axes[group_i].boxplot(
+                positions=np.arange(len(vals)) + pos_offset,
+                x=vals,
+                sym="",
+                widths=widths,
+                patch_artist=True,
+                boxprops=props,
+                whiskerprops=props,
+                capprops=props,
+                medianprops=props,
+            )
+            if edge_alpha is not None:
+                color_boxplot(bplot, lighten_color(color, edge_alpha))
+            else:
+                for patch in bplot["medians"]:
+                    patch.set_color("black")
+
+            for patch in bplot["boxes"]:
+                patch.set_facecolor(color)
+
+        elif plot_type == "line":
+            axes[group_i].errorbar(
+                x=np.arange(len(vals)) + 1 + pos_offset,
+                y=means,
+                yerr=sems,
+                fmt=".--",
+                ms=4,
+                mew=1,
+                linewidth=1,
+                color=color,
+            )
+        else:
+            raise ValueError("plot_type must be 'box' or 'line'")
+
+        axes[group_i].set_xlabel(group)
+        axes[group_i].set_xticks(np.arange(len(vals)))
+        axes[group_i].set_xticklabels(x)
+
+
+def plot_group_r2(
+    df: pd.DataFrame,
+    figsize=(7, 1.5),
+    groups=None,
+    width_ratios=None,
+    plot_type="box",
+    color="lightgray",
+):
+    """Plot R2 by groups
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        dataframe containing 'group', 'subgroup', 'r2'
+    figsize : tuple, optional
+        figure size, by default (7, 1.5)
+    """
+
+    if groups is None:
+        groups = df["group"].unique()
+    if width_ratios is None:
+        width_ratios = (
+            np.array([len(df[df["group"] == g]["subgroup"].unique()) for g in groups])
+            + 1
+        )
+
+    fig, axes = plt.subplots(
+        figsize=figsize,
+        dpi=150,
+        ncols=len(width_ratios),
+        sharey=True,
+        gridspec_kw={"width_ratios": width_ratios},
+    )
+
+    for i, group in enumerate(groups):
+        if plot_type == "bar":
+            r2 = df[df["group"] == group].groupby("subgroup").mean()["r2"].values
+            r2_se = df[df["group"] == group].groupby("subgroup").sem()["r2"].values
+            axes[i].bar(
+                x=np.arange(len(r2)),
+                height=r2,
+                yerr=r2_se * 2,
+                edgecolor="k",
+                linewidth=1,
+                alpha=0.6,
+                color=color,
+                width=0.6,
+            )
+        elif plot_type == "box":
+            df_group = df[df.group == group]
+            r2 = [
+                df_group[df_group["subgroup"] == sg]["r2"].values
+                for sg in df_group["subgroup"].unique()
+            ]
+            props = {"linewidth": 0.65}
+            bplot = axes[i].boxplot(
+                positions=np.arange(len(r2)),
+                x=r2,
+                sym="",
+                widths=0.23,
+                patch_artist=True,
+                boxprops=props,
+                whiskerprops=props,
+                capprops=props,
+                medianprops=props,
+            )
+            for patch in bplot["boxes"]:
+                patch.set_facecolor(color)
+            for patch in bplot["medians"]:
+                patch.set_color("black")
+
+        axes[i].set_xlim(-0.5, len(r2) - 0.5)
+        axes[i].set_xticks(np.arange(len(r2)))
+        axes[i].set_xlabel(group)
+    axes[0].set_ylabel("$R^2 (y, \widehat{y})$", fontsize=12)
+    fig.subplots_adjust(wspace=0.1)
+
+    return fig, axes
+
+
+def plot_group_predint(
+    df: pd.DataFrame,
+    figsize=(7, 1.8),
+    methods: List = None,
+    method_colors: Dict = None,
+    groups=None,
+    pos_offset: float = 0.3,
+    widths=0.2,
+    legend_bbox_to_anchor=(0.5, 0.96),
+    legend_fontsize=10,
+    width_ratios=None,
+):
+    """Plot the prediction interval summary
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        df contains: 'method', 'group', 'subgroup', 'coverage', 'length'
+
+    pos_offset : float, optional
+        position offset
+    """
+    # plot 2 figures
+    if methods is None:
+        methods = df["method"].unique()
+    n_method = len(methods)
+    if method_colors is None:
+        palatte = sns.color_palette("Set1", n_method)
+        method_colors = {method: color for method, color in zip(methods, palatte)}
+
+    assert len(method_colors) == n_method
+    if groups is None:
+        groups = df["group"].unique()
+    if width_ratios is None:
+        width_ratios = (
+            np.array([len(df[df["group"] == g]["subgroup"].unique()) for g in groups])
+            + 1
+        )
+
+    fig_list = []
+    axes_list = []
+    for val_col in ["coverage", "length"]:
+        fig, axes = plt.subplots(
+            figsize=figsize,
+            ncols=len(width_ratios),
+            sharey=True,
+            gridspec_kw={"width_ratios": width_ratios},
+            dpi=150,
+        )
+
+        for i, method in enumerate(methods):
+            _group_plot(
+                df[df["method"] == method],
+                val_col=val_col,
+                groups=groups,
+                pos_offset=-pos_offset * (len(methods) - 1) / 2 + pos_offset * i,
+                axes=axes,
+                widths=widths,
+                color=method_colors[method],
+            )
+        legend_elements = [
+            Patch(
+                facecolor=method_colors[method],
+                edgecolor="k",
+                label=method,
+            )
+            for method in methods
+        ]
+        fig.legend(
+            handles=legend_elements,
+            loc="center",
+            ncol=len(methods),
+            bbox_to_anchor=legend_bbox_to_anchor,
+            fontsize=legend_fontsize,
+            frameon=False,
+        )
+        if val_col == "coverage":
+            axes[0].set_ylabel("Coverage of \nPrediction interval", fontsize=11)
+            axes[0].yaxis.set_major_formatter(
+                FuncFormatter(lambda y, _: "{:.0%}".format(y))
+            )
+
+        elif val_col == "length":
+            axes[0].set_ylabel("Length of \nPrediction interval", fontsize=11)
+        fig.subplots_adjust(wspace=0.1)
+        fig_list.append(fig)
+        axes_list.append(axes)
+    return fig_list[0], axes_list[0], fig_list[1], axes_list[1]
 
 
 # def plot_intervals(idx, ax=None):
