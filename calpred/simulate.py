@@ -50,7 +50,7 @@ def simulate_toy_quant_data(
 def simulate_gxe(
     scenario: int,
     n_rep: int = 100,
-    n_indiv: int = 10000,
+    n_indiv: int = 40000,
     n_gwas: int = 20000,
     n_snp=10000,
     hsq: float = None,
@@ -125,7 +125,7 @@ def simulate_gxe(
     emat = np.zeros([n_indiv, 2, n_rep])
 
     for i in tqdm(range(n_rep)):
-        beta_i = np.random.multivariate_normal(mean=[0, 0], cov=beta_cov, size=n_indiv)
+        beta_i = np.random.multivariate_normal(mean=[0, 0], cov=beta_cov, size=n_snp)
 
         # generate betahat and betaprs using pop1
         betahat_i = beta_i[:, 0] + np.random.normal(

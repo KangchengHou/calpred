@@ -174,9 +174,7 @@ def plot_r2_heatmap(
     cbar = ax.collections[0].colorbar
     cbar.set_ticks([-0.5, -0.25, 0, 0.25, 0.5])
     cbar.set_ticklabels(["<-50%", "-25%", "0%", "25%", ">50%"])
-    cbar.ax.set_ylabel(
-        "Relative $\Delta (R^2)$", rotation=270, fontsize=9, labelpad=6.0
-    )
+    cbar.ax.set_ylabel("Relative $\Delta R^2$", rotation=270, fontsize=9, labelpad=6.0)
     cbar.outline.set_edgecolor("black")
     cbar.outline.set_linewidth(0.8)
     cbar.ax.tick_params(labelsize=8)
@@ -317,7 +315,7 @@ def plot_prob_calibration(prob, y, n_q=30, ax=None, color="blue", label=None, ci
     ax.set_ylabel("Observed")
 
     ax.plot(stats_df["prob"], stats_df["y"], lw=0.5, color=color)
-    ax.axline((0, 0), slope=1, ls="--", color="black", lw=1)
+    ax.axline((0, 0), slope=1, ls="--", color="black", lw=0.5)
 
 
 def compare_values(

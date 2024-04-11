@@ -6,7 +6,7 @@ from setuptools import setup
 
 setup(
     name="calpred",
-    version="0.1",
+    version="0.1.1",
     description="calibrated prediction across diverse contexts",
     long_description=open("README.md", "r").read(),
     long_description_content_type="text/markdown",

@@ -4,31 +4,61 @@ See [companion manuscript github repository](https://github.com/KangchengHou/cal
 
 ## Installation
 ```bash
-git clone https://github.com/KangchengHou/calpred.git && cd calpred/
-Rscript -e "install.packages(c('statmod', 'Rchoice'), repos='https://cran.rstudio.com')" # calpred dependency
+# calpred calls R packages statmod and Rchoice in fitting the model
+Rscript -e "install.packages(c('statmod', 'Rchoice'), repos='https://cran.rstudio.com')"
+pip install calpred
 ```
 
 ## Quick example
-```bash
-# df must have person ID as 1st column, and should not contain missing data
-# y_col is the column name of the trait of interest
-# mean_cols and sd_cols are columns fot fitting the mean and standard deviation
-# with names separated by commas
-# <out_prefix>.fitted.tsv (fitted mean and sd) and <out_prefix>.coef.tsv (coefficients) will be generated
-# see toy/simulate.ipynb for the data simulation process
-Rscript calpred.cli.R \
-    --df toy/trait.tsv \
-    --y_col pheno \
-    --mean_cols pgs,ancestry,age,sex \
-    --sd_cols pgs,ancestry,age,sex \
-    --out_prefix toy/trait
+```python
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import calpred
+
+np.random.seed(42)
+n = 1000
+pgs = np.random.normal(size=n)
+age = np.random.normal(loc=40, scale=10, size=n)
+sex = np.random.binomial(n=1, p=0.5, size=n)
+
+y_mean = 8 + pgs * 0.5 + age * -0.2 + sex * 0.5
+y_sd = np.sqrt(np.exp(2 + age * -0.03 + sex * 1))
+y = np.random.normal(loc=y_mean, scale=y_sd)
+
+df = pd.DataFrame({"intercept": 1, "pgs": pgs, "age": age, "sex": sex, "y": y})
+
+# x and z are the columns for fitting the mean and standard deviation
+x = z = df[["intercept", "pgs", "age", "sex"]]
+model = calpred.fit(y=df["y"], x=x, z=z)
+
+# prediction mean and [low, high] for 90% prediction interval
+df["pred_mean"], df["pred_sd"] = calpred.predict(x=x, z=z, model_fit=model)
+df["pred_low"] = df["pred_mean"] - df["pred_sd"] * 1.645
+df["pred_high"] = df["pred_mean"] + df["pred_sd"] * 1.645
+
+
+# show prediction intervals at 5% / 95% quantile of prediction mean
+fig, ax = plt.subplots(figsize=(4, 4), dpi=150)
+ax.scatter(df["pred_mean"], df["y"], s=4)
+ax.axline((0, 0), slope=1, ls="--", color="red")
+
+idx1 = df.sort_values("pred_mean").index[int(n * 0.05)]
+idx2 = df.sort_values("pred_mean").index[int(n * 0.95)]
+
+for idx in [idx1, idx2]:
+    ax.errorbar(
+        x=df.loc[idx, "pred_mean"],
+        y=df.loc[idx, "pred_mean"],
+        yerr=df.loc[idx, "pred_sd"] * 1.645,
+        color="red",
+        capsize=3,
+        lw=1,
+    )
+fig.show()
 ```
 
-## Example notebooks
-- [Introduction with a simulated dataset](https://nbviewer.org/github/KangchengHou/calpred/blob/main/introduction.ipynb)
-- [Example analysis pipeline](https://nbviewer.org/github/KangchengHou/calpred/blob/main/example.ipynb)
-
-## Upload to PyPI
+## Upload to PyPI (for developers)
 ```bash
 python setup.py sdist
 twine upload dist/*
